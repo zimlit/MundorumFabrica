@@ -3,6 +3,9 @@ uuid = "df92cde3-a597-4395-831b-5473045923f4"
 authors = ["Devin Rockwell <zimlit2010@gmail.com>"]
 version = "1.0.0-DEV"
 
+[deps]
+PackageCompiler = "9b87118b-4619-50d2-8e1e-99f35a4d4d9d"
+
 [compat]
 julia = "1.9"
 
