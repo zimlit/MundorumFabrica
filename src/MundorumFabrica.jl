@@ -16,6 +16,10 @@
 # along with MundorumFabrica.  If not, see <http://www.gnu.org/licenses/>.
 
 module MundorumFabrica
+    __precompile__()
+
+    using Gtk4
+
     struct Star
         mass::Float64
         lifespan::Float64
@@ -66,13 +70,37 @@ module MundorumFabrica
         print(io, "Habitable zone: $(s.HabitableZone[1]) AU to $(s.HabitableZone[2]) AU")
     end
 
-    function julia_main()::Cint
-        print("Enter the mass of the star: ")
-        mass = parse(Float64, readline())
-        star = Star(mass)
+    function activate(app)
+        win = GtkApplicationWindow(app, "Mundorum Fabrica")
 
-        println(star)
+        box = GtkBox(:v)
 
-        return 0
+        push!(win, box)
+
+        adjustment = GtkAdjustment(1, 0, 300, 0.1, 10, 0)
+        sb = GtkSpinButton(adjustment, 1, 4)
+        push!(box, sb)
+
+        submit = GtkButton("calculate")
+        push!(box, submit)
+
+        label = GtkLabel("")
+        push!(box, label)
+
+        signal_connect(submit, :clicked) do button
+            mass = sb.value
+            star = Star(mass)
+            buf = IOBuffer()
+            show(buf, star)
+            label.label = String(take!(buf))
+        end
+
+        show(win)
     end
+
+    app = GtkApplication()
+
+    Gtk4.signal_connect(activate, app, :activate)
+    
+    run(app)
 end
