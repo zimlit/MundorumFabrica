@@ -84,7 +84,7 @@ module MundorumFabrica
         adjustment = GtkAdjustment(1, 0, 300, 0.1, 10, 0)
         sb = GtkSpinButton(adjustment, 1, 4)
 
-        mass = GtkLabel("Mass (M☉):")
+        mass = GtkLabel("Mass (M☉)")
         li_l = GtkLabel("Lifespan (Gyr)")
         r_l = GtkLabel("Radius (R☉)")
         sa_l = GtkLabel("Surface area (km²)")
