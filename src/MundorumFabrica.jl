@@ -19,6 +19,7 @@ module MundorumFabrica
     __precompile__()
 
     using Gtk4
+    using Printf
 
     struct Star
         mass::Float64
@@ -58,6 +59,8 @@ module MundorumFabrica
         end
     end
 
+    star = Star(1.0)
+
     function Base.show(io::Core.IO, s::Star)
         println(io, "Star with mass $(s.mass) M☉")
         println(io, "Lifespan: $(s.lifespan) billion years")
@@ -73,26 +76,90 @@ module MundorumFabrica
     function activate(app)
         win = GtkApplicationWindow(app, "Mundorum Fabrica")
 
-        box = GtkBox(:v)
-
-        push!(win, box)
+        starbox = GtkGrid()
+        starbox.column_spacing = 15
+        starbox.margin_top = 20
+        starbox.halign = Gtk4.Align_CENTER
 
         adjustment = GtkAdjustment(1, 0, 300, 0.1, 10, 0)
         sb = GtkSpinButton(adjustment, 1, 4)
-        push!(box, sb)
 
-        submit = GtkButton("calculate")
-        push!(box, submit)
+        mass = GtkLabel("Mass (M☉):")
+        li_l = GtkLabel("Lifespan (Gyr)")
+        r_l = GtkLabel("Radius (R☉)")
+        sa_l = GtkLabel("Surface area (km²)")
+        v_l = GtkLabel("Volume (km³)")
+        l_l = GtkLabel("Luminosity (L☉)")
+        ρ_l = GtkLabel("Density (ρ☉)")
+        t_l = GtkLabel("Temperature (K)")
+        hz_l = GtkLabel("Habitable zone (AU)")
+        mass.xalign = 0
+        li_l.xalign = 0
+        r_l.xalign = 0
+        sa_l.xalign = 0
+        v_l.xalign = 0
+        l_l.xalign = 0
+        ρ_l.xalign = 0
+        t_l.xalign = 0
+        hz_l.xalign = 0
 
-        label = GtkLabel("")
-        push!(box, label)
+        li = GtkLabel(Printf.@sprintf("%.3f", star.lifespan))
+        r = GtkLabel(Printf.@sprintf("%.3f", star.radius))
+        sa = GtkLabel(Printf.@sprintf("%.3e", star.surface_area))
+        v = GtkLabel(Printf.@sprintf("%.3e", star.volume))
+        l = GtkLabel(Printf.@sprintf("%.3f", star.luminosity))
+        ρ = GtkLabel(Printf.@sprintf("%.3f", star.density))
+        t = GtkLabel(Printf.@sprintf("%.3f", star.temperature))
+        hz = GtkLabel(Printf.@sprintf("%.3f", star.HabitableZone[1]) * " to " * Printf.@sprintf("%.3f", star.HabitableZone[2]))
 
-        signal_connect(submit, :clicked) do button
-            mass = sb.value
-            star = Star(mass)
-            buf = IOBuffer()
-            show(buf, star)
-            label.label = String(take!(buf))
+        starbox[1, 1] = mass
+        starbox[2, 1] = sb
+
+        starbox[1, 2] = li_l
+        starbox[2, 2] = li
+
+        starbox[1, 3] = r_l
+        starbox[2, 3] = r
+
+        starbox[1, 4] = sa_l
+        starbox[2, 4] = sa
+
+        starbox[1, 5] = v_l
+        starbox[2, 5] = v
+
+        starbox[1, 6] = l_l
+        starbox[2, 6] = l
+
+        starbox[1, 7] = ρ_l
+        starbox[2, 7] = ρ
+
+        starbox[1, 8] = t_l
+        starbox[2, 8] = t
+
+        starbox[1, 9] = hz_l
+        starbox[2, 9] = hz
+
+        stack = GtkStack()
+        push!(stack, starbox, "Star", "Star")
+        stackswitcher = GtkStackSwitcher()
+        stackswitcher.stack = stack
+
+        vbox = GtkBox(:v)
+        push!(vbox, stackswitcher)
+        push!(vbox, stack)
+
+        push!(win, vbox)
+
+        signal_connect(sb, "value-changed") do b
+            star = Star(sb.value)
+            li.label = Printf.@sprintf("%.3f", star.lifespan)
+            r.label = Printf.@sprintf("%.3f", star.radius)
+            sa.label = Printf.@sprintf("%.3e", star.surface_area)
+            v.label = Printf.@sprintf("%.3e", star.volume)
+            l.label = Printf.@sprintf("%.3f", star.luminosity)
+            ρ.label = Printf.@sprintf("%.3f", star.density)
+            t.label = Printf.@sprintf("%.3f", star.temperature)
+            hz.label = Printf.@sprintf("%.3f", star.HabitableZone[1]) * " to " * Printf.@sprintf("%.3f", star.HabitableZone[2])
         end
 
         show(win)
