@@ -21,6 +21,15 @@ module MundorumFabrica
     using Gtk4
     using Printf
 
+    struct Orbit
+        semimajoraxis::Float64
+        eccentricity::Float64
+        inclination::Float64
+        apoapsis::Float64
+        periapsis::Float64
+        period::Float64
+    end
+
     struct Star
         mass::Float64
         lifespan::Float64
@@ -81,14 +90,24 @@ module MundorumFabrica
         axialtilt::Float64
         rotationperiod::Float64
         albedo::Float64
+        orbit::Orbit
         
-        function Planet(mass::Float64, radius::Float64, axialtilt::Float64, rotationperiod::Float64, albedo::Float64)
+        function Planet(
+                mass::Float64, radius::Float64, axialtilt::Float64, rotationperiod::Float64, albedo::Float64,
+                semimajoraxis::Float64, eccentricity::Float64, inclination::Float64, star::Star,
+            )
             surface_area = 4 * π * (radius*6371)^2
             volume = (4/3) * π * (radius*6371)^3
             density = ((mass*5.972e+24)/volume)/1e+12
             gravity = mass/radius^2
 
-            return new(mass, radius, surface_area, volume, density, gravity, axialtilt, rotationperiod, albedo)
+            apoapsis = semimajoraxis * (1 + eccentricity)
+            periapsis = semimajoraxis * (1 - eccentricity)
+            period = sqrt(semimajoraxis^3/star.mass)*365.242
+
+            orbit = Orbit(semimajoraxis, eccentricity, inclination, apoapsis, periapsis, period)
+
+            return new(mass, radius, surface_area, volume, density, gravity, axialtilt, rotationperiod, albedo, orbit)
         end
     end
 
@@ -104,10 +123,12 @@ module MundorumFabrica
         print(io, "Albedo: $(p.albedo)")
     end
 
-    star = Star(1.0)
-    planet = Planet(1.0, 1.0, 23.5, 24.0, 0.29)
+    function activate(app)
+        star = Star(1.0)
+        planet = Planet(1.0, 1.0, 23.5, 24.0, 0.29, 1.0, 0.0167, 0.0, star)
 
-    function makestarui()
+        win = GtkApplicationWindow(app, "Mundorum Fabrica")
+
         starbox = GtkGrid()
         starbox.column_spacing = 15
         starbox.margin_top = 20
@@ -175,28 +196,12 @@ module MundorumFabrica
         starbox[1, 9] = hz_l
         starbox[2, 9] = hz
         
-        signal_connect(sb, "value-changed") do b
-            star = Star(sb.value)
-            li.label = Printf.@sprintf("%.3f", star.lifespan)
-            r.label = Printf.@sprintf("%.3f", star.radius)
-            sa.label = Printf.@sprintf("%.3e", star.surface_area)
-            v.label = Printf.@sprintf("%.3e", star.volume)
-            l.label = Printf.@sprintf("%.3f", star.luminosity)
-            ρ.label = Printf.@sprintf("%.3f", star.density)
-            t.label = Printf.@sprintf("%.3f", star.temperature)
-            hz.label = Printf.@sprintf("%.3f", star.HabitableZone[1]) * " to " * Printf.@sprintf("%.3f", star.HabitableZone[2])
-        end
+        plvbox = GtkBox(:v)
 
-        return starbox
-    end
-
-    function makeplanetui()
-        vbox = GtkBox(:v)
-
-        stack = GtkStack()
-        stack.transition_type = Gtk4.StackTransitionType_SLIDE_LEFT_RIGHT
-        stackswitcher = GtkStackSwitcher()
-        stackswitcher.stack = stack
+        plstack = GtkStack()
+        plstack.transition_type = Gtk4.StackTransitionType_SLIDE_LEFT_RIGHT
+        plstackswitcher = GtkStackSwitcher()
+        plstackswitcher.stack = plstack
 
         physicalcharacteristicsbox = GtkGrid()
         physicalcharacteristicsbox.column_spacing = 15
@@ -218,88 +223,112 @@ module MundorumFabrica
         adjustment = GtkAdjustment(0.29, 0, 1, 0.01, 10, 0)
         sb_albedo = GtkSpinButton(adjustment, 1, 4)
 
-        mass = GtkLabel("m")
-        Gtk4.markup(mass, "Mass (M<sub>⊕</sub>)")
-        radius = GtkLabel("r")
-        Gtk4.markup(radius, "Radius (R<sub>⊕</sub>)")
-        sa_l = GtkLabel("Surface area (km²)")
-        v_l = GtkLabel("Volume (km³)")
-        ρ_l = GtkLabel("Density (ρ)")
-        Gtk4.markup(ρ_l, "Density (gm/cm<sup>3</sup>)")
-        g_l = GtkLabel("Gravity (g)")
-        a_l = GtkLabel("Axial tilt (°)")
-        p_l = GtkLabel("Rotation period (earth hours)")
-        albedo_l = GtkLabel("Bond albedo")
+        plmass = GtkLabel("m")
+        Gtk4.markup(plmass, "Mass (M<sub>⊕</sub>)")
+        plradius = GtkLabel("r")
+        Gtk4.markup(plradius, "Radius (R<sub>⊕</sub>)")
+        plsa_l = GtkLabel("Surface area (km²)")
+        plv_l = GtkLabel("Volume (km³)")
+        plρ_l = GtkLabel("Density (ρ)")
+        Gtk4.markup(plρ_l, "Density (gm/cm<sup>3</sup>)")
+        plg_l = GtkLabel("Gravity (g)")
+        pla_l = GtkLabel("Axial tilt (°)")
+        plp_l = GtkLabel("Rotation period (earth hours)")
+        plalbedo_l = GtkLabel("Bond albedo")
+        plmass.xalign = 0
+        plradius.xalign = 0
+        plsa_l.xalign = 0
+        plv_l.xalign = 0
+        plρ_l.xalign = 0
+        plg_l.xalign = 0
+        pla_l.xalign = 0
+        plp_l.xalign = 0
+        plalbedo_l.xalign = 0
 
-        sa = GtkLabel(Printf.@sprintf("%.3e", planet.surface_area))
-        v = GtkLabel(Printf.@sprintf("%.3e", planet.volume))
-        ρ = GtkLabel(Printf.@sprintf("%.3f", planet.density))
-        g = GtkLabel(Printf.@sprintf("%.3f", planet.gravity))
+        plsa = GtkLabel(Printf.@sprintf("%.3e", planet.surface_area))
+        plv = GtkLabel(Printf.@sprintf("%.3e", planet.volume))
+        plρ = GtkLabel(Printf.@sprintf("%.3f", planet.density))
+        plg = GtkLabel(Printf.@sprintf("%.3f", planet.gravity))
 
-        physicalcharacteristicsbox[1, 1] = mass
+        physicalcharacteristicsbox[1, 1] = plmass
         physicalcharacteristicsbox[2, 1] = sb_mass
 
-        physicalcharacteristicsbox[1, 2] = radius
+        physicalcharacteristicsbox[1, 2] = plradius
         physicalcharacteristicsbox[2, 2] = sb_radius
 
-        physicalcharacteristicsbox[1, 3] = sa_l
-        physicalcharacteristicsbox[2, 3] = sa
+        physicalcharacteristicsbox[1, 3] = plsa_l
+        physicalcharacteristicsbox[2, 3] = plsa
 
-        physicalcharacteristicsbox[1, 4] = v_l
-        physicalcharacteristicsbox[2, 4] = v
+        physicalcharacteristicsbox[1, 4] = plv_l
+        physicalcharacteristicsbox[2, 4] = plv
 
-        physicalcharacteristicsbox[1, 5] = ρ_l
-        physicalcharacteristicsbox[2, 5] = ρ
+        physicalcharacteristicsbox[1, 5] = plρ_l
+        physicalcharacteristicsbox[2, 5] = plρ
 
-        physicalcharacteristicsbox[1, 6] = g_l
-        physicalcharacteristicsbox[2, 6] = g
+        physicalcharacteristicsbox[1, 6] = plg_l
+        physicalcharacteristicsbox[2, 6] = plg
 
-        physicalcharacteristicsbox[1, 7] = a_l
+        physicalcharacteristicsbox[1, 7] = pla_l
         physicalcharacteristicsbox[2, 7] = sb_axialtilt
 
-        physicalcharacteristicsbox[1, 8] = p_l
+        physicalcharacteristicsbox[1, 8] = plp_l
         physicalcharacteristicsbox[2, 8] = sb_rotationperiod
 
-        physicalcharacteristicsbox[1, 9] = albedo_l
+        physicalcharacteristicsbox[1, 9] = plalbedo_l
         physicalcharacteristicsbox[2, 9] = sb_albedo
 
-        function compute(w)
-            planet = Planet(sb_mass.value, sb_radius.value, sb_axialtilt.value, sb_rotationperiod.value, sb_albedo.value)
-            sa.label = Printf.@sprintf("%.3e", planet.surface_area)
-            v.label = Printf.@sprintf("%.3e", planet.volume)
-            ρ.label = Printf.@sprintf("%.3f", planet.density)
-            g.label = Printf.@sprintf("%.3f", planet.gravity)
-        end
-
-        signal_connect(compute, sb_mass, "value-changed")
-        signal_connect(compute, sb_radius, "value-changed")
-        signal_connect(compute, sb_axialtilt, "value-changed")
-        signal_connect(compute, sb_rotationperiod, "value-changed")
-        signal_connect(compute, sb_albedo, "value-changed")
-        
         orbitalcharacteristicsbox = GtkGrid()
+
+        adjustment = GtkAdjustment(1, 0, 1.7976931348623157e+308, 0.1, 10, 0)
+        sb_semi = GtkSpinButton(adjustment, 1, 4)
+
+        adjustment = GtkAdjustment(0.0167, 0, 1, 0.01, 10, 0)
+        sb_ecc = GtkSpinButton(adjustment, 1, 4)
+
+        adjustment = GtkAdjustment(0, 0, 360, 0.1, 10, 0)
+        sb_inc = GtkSpinButton(adjustment, 1, 4)
+
+        plsemi_l = GtkLabel("Semi-major axis (AU)")
+        plecc_l = GtkLabel("Eccentricity")
+        plinc_l = GtkLabel("Inclination (°)")
+        plap_l = GtkLabel("Apoapsis (AU)")
+        plpe_l = GtkLabel("Periapsis (AU)")
+        plper_l = GtkLabel("Orbital Period (earth days)")
+
+        plap = GtkLabel(Printf.@sprintf("%.3f", planet.orbit.apoapsis))
+        plpe = GtkLabel(Printf.@sprintf("%.3f", planet.orbit.periapsis))
+        plper = GtkLabel(Printf.@sprintf("%.3f", planet.orbit.period))
+
+        orbitalcharacteristicsbox[1, 1] = plsemi_l
+        orbitalcharacteristicsbox[2, 1] = sb_semi
+
+        orbitalcharacteristicsbox[1, 2] = plecc_l
+        orbitalcharacteristicsbox[2, 2] = sb_ecc
+
+        orbitalcharacteristicsbox[1, 3] = plinc_l
+        orbitalcharacteristicsbox[2, 3] = sb_inc
+
+        orbitalcharacteristicsbox[1, 4] = plap_l
+        orbitalcharacteristicsbox[2, 4] = plap
+
+        orbitalcharacteristicsbox[1, 5] = plpe_l
+        orbitalcharacteristicsbox[2, 5] = plpe
+
+        orbitalcharacteristicsbox[1, 6] = plper_l
+        orbitalcharacteristicsbox[2, 6] = plper
 
         atmosphericcharacteristicsbox = GtkGrid()
 
-        push!(stack, physicalcharacteristicsbox, "Physical Characteristics", "Physical Characteristics")
-        push!(stack, orbitalcharacteristicsbox, "Orbital Characteristics", "Orbital Characteristics")
-        push!(stack, atmosphericcharacteristicsbox, "Atmospheric Characteristics", "Atmospheric Characteristics")
-        push!(vbox, stackswitcher)
-        push!(vbox, stack)
-
-        return vbox
-    end
-
-    function activate(app)
-        win = GtkApplicationWindow(app, "Mundorum Fabrica")
-
-        starbox = makestarui()
-        planetbox = makeplanetui()
+        push!(plstack, physicalcharacteristicsbox, "Physical Characteristics", "Physical Characteristics")
+        push!(plstack, orbitalcharacteristicsbox, "Orbital Characteristics", "Orbital Characteristics")
+        push!(plstack, atmosphericcharacteristicsbox, "Atmospheric Characteristics", "Atmospheric Characteristics")
+        push!(plvbox, plstackswitcher)
+        push!(plvbox, plstack)
 
         stack = GtkStack()
         stack.transition_type = Gtk4.StackTransitionType_SLIDE_LEFT_RIGHT
         push!(stack, starbox, "Star", "Star")
-        push!(stack, planetbox, "Planet", "Planet")
+        push!(stack, plvbox, "Planet", "Planet")
         stackswitcher = GtkStackSwitcher()
         stackswitcher.stack = stack
 
@@ -308,6 +337,38 @@ module MundorumFabrica
         push!(vbox, stack)
 
         push!(win, vbox)
+
+        function compute(w)
+            star = Star(sb.value)
+            planet = Planet(sb_mass.value, sb_radius.value, sb_albedo.value, sb_rotationperiod.value, sb_albedo.value, sb_semi.value, sb_ecc.value, sb_inc.value, star)
+
+            li.label = Printf.@sprintf("%.3f", star.lifespan)
+            r.label = Printf.@sprintf("%.3f", star.radius)
+            sa.label = Printf.@sprintf("%.3e", star.surface_area)
+            v.label = Printf.@sprintf("%.3e", star.volume)
+            l.label = Printf.@sprintf("%.3f", star.luminosity)
+            ρ.label = Printf.@sprintf("%.3f", star.density)
+            t.label = Printf.@sprintf("%.3f", star.temperature)
+            hz.label = Printf.@sprintf("%.3f", star.HabitableZone[1]) * " to " * Printf.@sprintf("%.3f", star.HabitableZone[2])
+
+            plsa.label = Printf.@sprintf("%.3e", planet.surface_area)
+            plv.label = Printf.@sprintf("%.3e", planet.volume)
+            plρ.label = Printf.@sprintf("%.3f", planet.density)
+            plg.label = Printf.@sprintf("%.3f", planet.gravity)
+            plap.label = Printf.@sprintf("%.3f", planet.orbit.apoapsis)
+            plpe.label = Printf.@sprintf("%.3f", planet.orbit.periapsis)
+            plper.label = Printf.@sprintf("%.3f", planet.orbit.period)
+        end
+
+        signal_connect(compute, sb, "value-changed")
+        signal_connect(compute, sb_mass, "value-changed")
+        signal_connect(compute, sb_radius, "value-changed")
+        signal_connect(compute, sb_axialtilt, "value-changed")
+        signal_connect(compute, sb_rotationperiod, "value-changed")
+        signal_connect(compute, sb_albedo, "value-changed")
+        signal_connect(compute, sb_semi, "value-changed")
+        signal_connect(compute, sb_ecc, "value-changed")
+        signal_connect(compute, sb_inc, "value-changed")
 
         show(win)
     end
