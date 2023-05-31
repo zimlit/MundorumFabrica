@@ -6,6 +6,7 @@ version = "1.0.0-DEV"
 [deps]
 Gtk4 = "9db2cae5-386f-4011-9d63-a5602296539b"
 PackageCompiler = "9b87118b-4619-50d2-8e1e-99f35a4d4d9d"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [compat]
 julia = "1.9"

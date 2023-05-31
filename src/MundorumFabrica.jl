@@ -80,7 +80,7 @@ module MundorumFabrica
         print(io, "Habitable zone: $(s.HabitableZone[1]) AU to $(s.HabitableZone[2]) AU")
     end
 
-    @enum Gas N2 O2 Ar CO2 CH4 N2O O3 Ne He H2 H2O CO NH3 SO2 H2S SO3 
+    @enum Gas N2 O2 Ar CO2 CH4 N2O O3 Ne He H2 H2O CO NH3 SO2 H2S SO3 Kr
 
     struct Planet
         mass::Float64
@@ -93,9 +93,8 @@ module MundorumFabrica
         rotationperiod::Float64
         albedo::Float64
         orbit::Orbit
-        atm::Dict{Gas, Tuple{Float64, Float64}}
         atmpressure::Float64
-        atmdensity::Float64
+        atm::Dict{Gas, Float64}
         
         function Planet(
                 mass::Float64, radius::Float64, axialtilt::Float64, rotationperiod::Float64, albedo::Float64,
@@ -113,9 +112,7 @@ module MundorumFabrica
 
             orbit = Orbit(semimajoraxis, eccentricity, inclination, apoapsis, periapsis, period)
 
-            # TODO: atm calculations
-
-            return new(mass, radius, surface_area, volume, density, gravity, axialtilt, rotationperiod, albedo, orbit)
+            return new(mass, radius, surface_area, volume, density, gravity, axialtilt, rotationperiod, albedo, orbit, atmpressure, atm)
         end
     end
 
@@ -133,7 +130,20 @@ module MundorumFabrica
 
     function activate(app)
         star = Star(1.0)
-        planet = Planet(1.0, 1.0, 23.5, 24.0, 0.29, 1.0, 0.0167, 0.0, star)
+        planet = Planet(
+            1.0, 1.0, 23.5, 24.0, 0.29, 
+            1.0, 0.0167, 0.0, star, 
+            1.0, Dict(
+                N2 => 78.084, 
+                O2 => 20.946, 
+                Ar => 0.934, 
+                CO2 => 0.417, 
+                Ne => 0.001818,
+                He => 0.000524,
+                CH4 => 0.000187,
+                Kr => 0.000114
+            )
+        )
 
         win = GtkApplicationWindow(app, "Mundorum Fabrica")
 
@@ -286,6 +296,9 @@ module MundorumFabrica
         physicalcharacteristicsbox[2, 9] = sb_albedo
 
         orbitalcharacteristicsbox = GtkGrid()
+        orbitalcharacteristicsbox.column_spacing = 15
+        orbitalcharacteristicsbox.margin_top = 20
+	orbitalcharacteristicsbox.halign = Gtk4.Align_CENTER
 
         adjustment = GtkAdjustment(1, 0, 1.7976931348623157e+308, 0.1, 10, 0)
         sb_semi = GtkSpinButton(adjustment, 1, 4)
@@ -356,7 +369,20 @@ module MundorumFabrica
 
         function compute(w)
             star = Star(sb.value)
-            planet = Planet(sb_mass.value, sb_radius.value, sb_albedo.value, sb_rotationperiod.value, sb_albedo.value, sb_semi.value, sb_ecc.value, sb_inc.value, star)
+            planet = Planet(
+                sb_mass.value, sb_radius.value, sb_albedo.value, sb_rotationperiod.value, sb_albedo.value, 
+                sb_semi.value, sb_ecc.value, sb_inc.value, star,
+                    1.0, Dict(
+                    N2 => 78.084, 
+                    O2 => 20.946, 
+                    Ar => 0.934, 
+                    CO2 => 0.417, 
+                    Ne => 0.001818,
+                    He => 0.000524,
+                    Me => 0.000187,
+                    Kr => 0.000114
+                ) 
+            )
 
             li.label = Printf.@sprintf("%.3f", star.lifespan)
             r.label = Printf.@sprintf("%.3f", star.radius)
