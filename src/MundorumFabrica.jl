@@ -80,6 +80,8 @@ module MundorumFabrica
         print(io, "Habitable zone: $(s.HabitableZone[1]) AU to $(s.HabitableZone[2]) AU")
     end
 
+    @enum Gas N2 O2 Ar CO2 CH4 N2O O3 Ne He H2 H2O CO NH3 SO2 H2S SO3 
+
     struct Planet
         mass::Float64
         radius::Float64
@@ -91,10 +93,14 @@ module MundorumFabrica
         rotationperiod::Float64
         albedo::Float64
         orbit::Orbit
+        atm::Dict{Gas, Tuple{Float64, Float64}}
+        atmpressure::Float64
+        atmdensity::Float64
         
         function Planet(
                 mass::Float64, radius::Float64, axialtilt::Float64, rotationperiod::Float64, albedo::Float64,
                 semimajoraxis::Float64, eccentricity::Float64, inclination::Float64, star::Star,
+                atmpressure::Float64, atm::Dict{Gas, Float64}
             )
             surface_area = 4 * π * (radius*6371)^2
             volume = (4/3) * π * (radius*6371)^3
@@ -106,6 +112,8 @@ module MundorumFabrica
             period = sqrt(semimajoraxis^3/star.mass)*365.242
 
             orbit = Orbit(semimajoraxis, eccentricity, inclination, apoapsis, periapsis, period)
+
+            # TODO: atm calculations
 
             return new(mass, radius, surface_area, volume, density, gravity, axialtilt, rotationperiod, albedo, orbit)
         end
@@ -318,6 +326,14 @@ module MundorumFabrica
         orbitalcharacteristicsbox[2, 6] = plper
 
         atmosphericcharacteristicsbox = GtkGrid()
+        
+        adjustment = GtkAdjustment(1, 0, 1.7976931348623157e+308, 0.1, 10, 0)
+        sb_atm = GtkSpinButton(adjustment, 1, 4)
+
+        atmp_l = GtkLabel("Pressure (atm)")
+
+        atmosphericcharacteristicsbox[1, 1] = atmp_l
+        atmosphericcharacteristicsbox[2, 1] = sb_atm
 
         push!(plstack, physicalcharacteristicsbox, "Physical Characteristics", "Physical Characteristics")
         push!(plstack, orbitalcharacteristicsbox, "Orbital Characteristics", "Orbital Characteristics")
