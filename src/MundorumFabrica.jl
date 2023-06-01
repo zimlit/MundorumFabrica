@@ -219,6 +219,9 @@ module MundorumFabrica
         plstack = GtkStack()
         plstack.transition_type = Gtk4.StackTransitionType_SLIDE_LEFT_RIGHT
         plstackswitcher = GtkStackSwitcher()
+        plstackswitcher.margin_top = 10
+        plstackswitcher.margin_start = 10
+        plstackswitcher.margin_end = 10
         plstackswitcher.stack = plstack
 
         physicalcharacteristicsbox = GtkGrid()
@@ -298,7 +301,7 @@ module MundorumFabrica
         orbitalcharacteristicsbox = GtkGrid()
         orbitalcharacteristicsbox.column_spacing = 15
         orbitalcharacteristicsbox.margin_top = 20
-	orbitalcharacteristicsbox.halign = Gtk4.Align_CENTER
+	    orbitalcharacteristicsbox.halign = Gtk4.Align_CENTER
 
         adjustment = GtkAdjustment(1, 0, 1.7976931348623157e+308, 0.1, 10, 0)
         sb_semi = GtkSpinButton(adjustment, 1, 4)
@@ -339,6 +342,9 @@ module MundorumFabrica
         orbitalcharacteristicsbox[2, 6] = plper
 
         atmosphericcharacteristicsbox = GtkGrid()
+        atmosphericcharacteristicsbox.column_spacing = 15
+        atmosphericcharacteristicsbox.margin_top = 20
+	    atmosphericcharacteristicsbox.halign = Gtk4.Align_CENTER
         
         adjustment = GtkAdjustment(1, 0, 1.7976931348623157e+308, 0.1, 10, 0)
         sb_atm = GtkSpinButton(adjustment, 1, 4)
@@ -359,6 +365,9 @@ module MundorumFabrica
         push!(stack, starbox, "Star", "Star")
         push!(stack, plvbox, "Planet", "Planet")
         stackswitcher = GtkStackSwitcher()
+        stackswitcher.margin_top = 10
+        stackswitcher.margin_start = 10
+        stackswitcher.margin_end = 10
         stackswitcher.stack = stack
 
         vbox = GtkBox(:v)
@@ -379,7 +388,7 @@ module MundorumFabrica
                     CO2 => 0.417, 
                     Ne => 0.001818,
                     He => 0.000524,
-                    Me => 0.000187,
+                    CH4 => 0.000187,
                     Kr => 0.000114
                 ) 
             )
