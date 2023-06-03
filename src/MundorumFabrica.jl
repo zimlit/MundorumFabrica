@@ -24,6 +24,7 @@ module MundorumFabrica
     include("Star.jl")
     include("Planet/PhysicalCharacteristics.jl")
     include("Planet/OrbitalCharacteristics.jl")
+    include("Planet/AtmosphericCharacteristics.jl")
 
     struct Orbit
         semimajoraxis::Float64
@@ -114,37 +115,11 @@ module MundorumFabrica
 
         physicalcharacteristicsui = PlanetPhysicalCharacteristics(planet)
         orbitalcharacteristicsui = PlanetOrbitalCharacteristics(planet)
+        atmosphericcharacteristicsui = PlanetAtmosphericCharacteristics()
         
-        atmosphericcharacteristicsbox = GtkBox(:v)
-        atmosphericcharacteristicsbox.spacing = 15
-        atmosphericcharacteristicsbox.margin_top = 20
-	    atmosphericcharacteristicsbox.halign = Gtk4.Align_CENTER
-
-        pressure = GtkBox(:h)       
-        pressure.spacing = 15
-        adjustment = GtkAdjustment(1, 0, 1.7976931348623157e+308, 0.1, 10, 0)
-        sb_atm = GtkSpinButton(adjustment, 1, 4)
-
-        atmp_l = GtkLabel("Pressure (atm)")
-
-        push!(pressure, atmp_l)
-        push!(pressure, sb_atm)
-
-        gas_t = GtkGrid()
-        gas_t.column_spacing = 15
-
-        gas_l = GtkLabel("Gas")
-        percent_l = GtkLabel("%")
-
-        gas_t[1, 1] = gas_l
-        gas_t[2, 1] = percent_l
-
-        push!(atmosphericcharacteristicsbox, pressure)
-        push!(atmosphericcharacteristicsbox, gas_t)
-
         push!(plstack, physicalcharacteristicsui.box, "Physical Characteristics", "Physical Characteristics")
         push!(plstack, orbitalcharacteristicsui.box, "Orbital Characteristics", "Orbital Characteristics")
-        push!(plstack, atmosphericcharacteristicsbox, "Atmospheric Characteristics", "Atmospheric Characteristics")
+        push!(plstack, atmosphericcharacteristicsui.box, "Atmospheric Characteristics", "Atmospheric Characteristics")
         push!(plvbox, plstackswitcher)
         push!(plvbox, plstack)
 
@@ -169,7 +144,7 @@ module MundorumFabrica
             planet = Planet(
                 physicalcharacteristicsui.sb_mass.value, physicalcharacteristicsui.sb_radius.value, physicalcharacteristicsui.sb_albedo.value, physicalcharacteristicsui.sb_rotationperiod.value, physicalcharacteristicsui.sb_albedo.value, 
                 orbitalcharacteristicsui.sb_semi.value, orbitalcharacteristicsui.sb_ecc.value, orbitalcharacteristicsui.sb_inc.value, starui.star,
-                    1.0, Dict(
+                atmosphericcharacteristicsui.sb_atm.value, Dict(
                     N2 => 78.084, 
                     O2 => 20.946, 
                     Ar => 0.934, 
