@@ -1,8 +1,8 @@
 using Gtk4
 
 mutable struct PlanetAtmosphericCharacteristics
-    box::GtkBox
-    sb_atm::GtkSpinButton
+    const box::GtkBox
+    const sb_atm::GtkSpinButton
 
     function PlanetAtmosphericCharacteristics()
         atmosphericcharacteristicsbox = GtkBox(:v)
