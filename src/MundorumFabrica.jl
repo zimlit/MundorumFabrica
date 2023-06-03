@@ -23,6 +23,7 @@ module MundorumFabrica
 
     include("Star.jl")
     include("Planet/PhysicalCharacteristics.jl")
+    include("Planet/OrbitalCharacteristics.jl")
 
     struct Orbit
         semimajoraxis::Float64
@@ -112,50 +113,8 @@ module MundorumFabrica
         plstackswitcher.stack = plstack
 
         physicalcharacteristicsui = PlanetPhysicalCharacteristics(planet)
-
-        orbitalcharacteristicsbox = GtkGrid()
-        orbitalcharacteristicsbox.column_spacing = 15
-        orbitalcharacteristicsbox.margin_top = 20
-	    orbitalcharacteristicsbox.halign = Gtk4.Align_CENTER
-
-        adjustment = GtkAdjustment(1, 0, 1.7976931348623157e+308, 0.1, 10, 0)
-        sb_semi = GtkSpinButton(adjustment, 1, 4)
-
-        adjustment = GtkAdjustment(0.0167, 0, 1, 0.01, 10, 0)
-        sb_ecc = GtkSpinButton(adjustment, 1, 4)
-
-        adjustment = GtkAdjustment(0, 0, 360, 0.1, 10, 0)
-        sb_inc = GtkSpinButton(adjustment, 1, 4)
-
-        plsemi_l = GtkLabel("Semi-major axis (AU)")
-        plecc_l = GtkLabel("Eccentricity")
-        plinc_l = GtkLabel("Inclination (°)")
-        plap_l = GtkLabel("Apoapsis (AU)")
-        plpe_l = GtkLabel("Periapsis (AU)")
-        plper_l = GtkLabel("Orbital Period (earth days)")
-
-        plap = GtkLabel(Printf.@sprintf("%.3f", planet.orbit.apoapsis))
-        plpe = GtkLabel(Printf.@sprintf("%.3f", planet.orbit.periapsis))
-        plper = GtkLabel(Printf.@sprintf("%.3f", planet.orbit.period))
-
-        orbitalcharacteristicsbox[1, 1] = plsemi_l
-        orbitalcharacteristicsbox[2, 1] = sb_semi
-
-        orbitalcharacteristicsbox[1, 2] = plecc_l
-        orbitalcharacteristicsbox[2, 2] = sb_ecc
-
-        orbitalcharacteristicsbox[1, 3] = plinc_l
-        orbitalcharacteristicsbox[2, 3] = sb_inc
-
-        orbitalcharacteristicsbox[1, 4] = plap_l
-        orbitalcharacteristicsbox[2, 4] = plap
-
-        orbitalcharacteristicsbox[1, 5] = plpe_l
-        orbitalcharacteristicsbox[2, 5] = plpe
-
-        orbitalcharacteristicsbox[1, 6] = plper_l
-        orbitalcharacteristicsbox[2, 6] = plper
-
+        orbitalcharacteristicsui = PlanetOrbitalCharacteristics(planet)
+        
         atmosphericcharacteristicsbox = GtkBox(:v)
         atmosphericcharacteristicsbox.spacing = 15
         atmosphericcharacteristicsbox.margin_top = 20
@@ -184,7 +143,7 @@ module MundorumFabrica
         push!(atmosphericcharacteristicsbox, gas_t)
 
         push!(plstack, physicalcharacteristicsui.box, "Physical Characteristics", "Physical Characteristics")
-        push!(plstack, orbitalcharacteristicsbox, "Orbital Characteristics", "Orbital Characteristics")
+        push!(plstack, orbitalcharacteristicsui.box, "Orbital Characteristics", "Orbital Characteristics")
         push!(plstack, atmosphericcharacteristicsbox, "Atmospheric Characteristics", "Atmospheric Characteristics")
         push!(plvbox, plstackswitcher)
         push!(plvbox, plstack)
@@ -209,7 +168,7 @@ module MundorumFabrica
             starui.star = Star(starui.sb.value)
             planet = Planet(
                 physicalcharacteristicsui.sb_mass.value, physicalcharacteristicsui.sb_radius.value, physicalcharacteristicsui.sb_albedo.value, physicalcharacteristicsui.sb_rotationperiod.value, physicalcharacteristicsui.sb_albedo.value, 
-                sb_semi.value, sb_ecc.value, sb_inc.value, starui.star,
+                orbitalcharacteristicsui.sb_semi.value, orbitalcharacteristicsui.sb_ecc.value, orbitalcharacteristicsui.sb_inc.value, starui.star,
                     1.0, Dict(
                     N2 => 78.084, 
                     O2 => 20.946, 
@@ -235,9 +194,9 @@ module MundorumFabrica
             physicalcharacteristicsui.v.label = Printf.@sprintf("%.3e", planet.volume)
             physicalcharacteristicsui.ρ.label = Printf.@sprintf("%.3f", planet.density)
             physicalcharacteristicsui.g.label = Printf.@sprintf("%.3f", planet.gravity)
-            plap.label = Printf.@sprintf("%.3f", planet.orbit.apoapsis)
-            plpe.label = Printf.@sprintf("%.3f", planet.orbit.periapsis)
-            plper.label = Printf.@sprintf("%.3f", planet.orbit.period)
+            orbitalcharacteristicsui.ap.label = Printf.@sprintf("%.3f", planet.orbit.apoapsis)
+            orbitalcharacteristicsui.pe.label = Printf.@sprintf("%.3f", planet.orbit.periapsis)
+            orbitalcharacteristicsui.per.label = Printf.@sprintf("%.3f", planet.orbit.period)
         end
 
         signal_connect(compute, starui.sb, "value-changed")
@@ -246,9 +205,9 @@ module MundorumFabrica
         signal_connect(compute, physicalcharacteristicsui.sb_axialtilt, "value-changed")
         signal_connect(compute, physicalcharacteristicsui.sb_rotationperiod, "value-changed")
         signal_connect(compute, physicalcharacteristicsui.sb_albedo, "value-changed")
-        signal_connect(compute, sb_semi, "value-changed")
-        signal_connect(compute, sb_ecc, "value-changed")
-        signal_connect(compute, sb_inc, "value-changed")
+        signal_connect(compute, orbitalcharacteristicsui.sb_semi, "value-changed")
+        signal_connect(compute, orbitalcharacteristicsui.sb_ecc, "value-changed")
+        signal_connect(compute, orbitalcharacteristicsui.sb_inc, "value-changed")
 
         show(win)
     end
