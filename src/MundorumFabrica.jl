@@ -22,6 +22,7 @@ module MundorumFabrica
     using Printf
 
     include("Star.jl")
+    include("Planet/PhysicalCharacteristics.jl")
 
     struct Orbit
         semimajoraxis::Float64
@@ -110,79 +111,7 @@ module MundorumFabrica
         plstackswitcher.margin_end = 10
         plstackswitcher.stack = plstack
 
-        physicalcharacteristicsbox = GtkGrid()
-        physicalcharacteristicsbox.column_spacing = 15
-        physicalcharacteristicsbox.margin_top = 20
-        physicalcharacteristicsbox.halign = Gtk4.Align_CENTER
-
-        adjustment = GtkAdjustment(1, 0, 4767, 0.1, 10, 0)
-        sb_mass = GtkSpinButton(adjustment, 1, 4)
-
-        adjustment = GtkAdjustment(1, 0, 25, 0.1, 10, 0)
-        sb_radius = GtkSpinButton(adjustment, 1, 4)
-
-        adjustment = GtkAdjustment(23.5, 0, 360, 0.1, 10, 0)
-        sb_axialtilt = GtkSpinButton(adjustment, 1, 4)
-
-        adjustment = GtkAdjustment(24, 0, 10000, 0.1, 10, 0)
-        sb_rotationperiod = GtkSpinButton(adjustment, 1, 4)
-
-        adjustment = GtkAdjustment(0.29, 0, 1, 0.01, 10, 0)
-        sb_albedo = GtkSpinButton(adjustment, 1, 4)
-
-        plmass = GtkLabel("m")
-        Gtk4.markup(plmass, "Mass (M<sub>⊕</sub>)")
-        plradius = GtkLabel("r")
-        Gtk4.markup(plradius, "Radius (R<sub>⊕</sub>)")
-        plsa_l = GtkLabel("Surface area (km²)")
-        plv_l = GtkLabel("Volume (km³)")
-        plρ_l = GtkLabel("Density (ρ)")
-        Gtk4.markup(plρ_l, "Density (gm/cm<sup>3</sup>)")
-        plg_l = GtkLabel("Gravity (g)")
-        pla_l = GtkLabel("Axial tilt (°)")
-        plp_l = GtkLabel("Rotation period (earth hours)")
-        plalbedo_l = GtkLabel("Bond albedo")
-        plmass.xalign = 0
-        plradius.xalign = 0
-        plsa_l.xalign = 0
-        plv_l.xalign = 0
-        plρ_l.xalign = 0
-        plg_l.xalign = 0
-        pla_l.xalign = 0
-        plp_l.xalign = 0
-        plalbedo_l.xalign = 0
-
-        plsa = GtkLabel(Printf.@sprintf("%.3e", planet.surface_area))
-        plv = GtkLabel(Printf.@sprintf("%.3e", planet.volume))
-        plρ = GtkLabel(Printf.@sprintf("%.3f", planet.density))
-        plg = GtkLabel(Printf.@sprintf("%.3f", planet.gravity))
-
-        physicalcharacteristicsbox[1, 1] = plmass
-        physicalcharacteristicsbox[2, 1] = sb_mass
-
-        physicalcharacteristicsbox[1, 2] = plradius
-        physicalcharacteristicsbox[2, 2] = sb_radius
-
-        physicalcharacteristicsbox[1, 3] = plsa_l
-        physicalcharacteristicsbox[2, 3] = plsa
-
-        physicalcharacteristicsbox[1, 4] = plv_l
-        physicalcharacteristicsbox[2, 4] = plv
-
-        physicalcharacteristicsbox[1, 5] = plρ_l
-        physicalcharacteristicsbox[2, 5] = plρ
-
-        physicalcharacteristicsbox[1, 6] = plg_l
-        physicalcharacteristicsbox[2, 6] = plg
-
-        physicalcharacteristicsbox[1, 7] = pla_l
-        physicalcharacteristicsbox[2, 7] = sb_axialtilt
-
-        physicalcharacteristicsbox[1, 8] = plp_l
-        physicalcharacteristicsbox[2, 8] = sb_rotationperiod
-
-        physicalcharacteristicsbox[1, 9] = plalbedo_l
-        physicalcharacteristicsbox[2, 9] = sb_albedo
+        physicalcharacteristicsui = PlanetPhysicalCharacteristics(planet)
 
         orbitalcharacteristicsbox = GtkGrid()
         orbitalcharacteristicsbox.column_spacing = 15
@@ -254,7 +183,7 @@ module MundorumFabrica
         push!(atmosphericcharacteristicsbox, pressure)
         push!(atmosphericcharacteristicsbox, gas_t)
 
-        push!(plstack, physicalcharacteristicsbox, "Physical Characteristics", "Physical Characteristics")
+        push!(plstack, physicalcharacteristicsui.box, "Physical Characteristics", "Physical Characteristics")
         push!(plstack, orbitalcharacteristicsbox, "Orbital Characteristics", "Orbital Characteristics")
         push!(plstack, atmosphericcharacteristicsbox, "Atmospheric Characteristics", "Atmospheric Characteristics")
         push!(plvbox, plstackswitcher)
@@ -279,7 +208,7 @@ module MundorumFabrica
         function compute(w)
             starui.star = Star(starui.sb.value)
             planet = Planet(
-                sb_mass.value, sb_radius.value, sb_albedo.value, sb_rotationperiod.value, sb_albedo.value, 
+                physicalcharacteristicsui.sb_mass.value, physicalcharacteristicsui.sb_radius.value, physicalcharacteristicsui.sb_albedo.value, physicalcharacteristicsui.sb_rotationperiod.value, physicalcharacteristicsui.sb_albedo.value, 
                 sb_semi.value, sb_ecc.value, sb_inc.value, starui.star,
                     1.0, Dict(
                     N2 => 78.084, 
@@ -302,21 +231,21 @@ module MundorumFabrica
             starui.t.label = Printf.@sprintf("%.3f", starui.star.temperature)
             starui.hz.label = Printf.@sprintf("%.3f", starui.star.HabitableZone[1]) * " to " * Printf.@sprintf("%.3f", starui.star.HabitableZone[2])
 
-            plsa.label = Printf.@sprintf("%.3e", planet.surface_area)
-            plv.label = Printf.@sprintf("%.3e", planet.volume)
-            plρ.label = Printf.@sprintf("%.3f", planet.density)
-            plg.label = Printf.@sprintf("%.3f", planet.gravity)
+            physicalcharacteristicsui.sa.label = Printf.@sprintf("%.3e", planet.surface_area)
+            physicalcharacteristicsui.v.label = Printf.@sprintf("%.3e", planet.volume)
+            physicalcharacteristicsui.ρ.label = Printf.@sprintf("%.3f", planet.density)
+            physicalcharacteristicsui.g.label = Printf.@sprintf("%.3f", planet.gravity)
             plap.label = Printf.@sprintf("%.3f", planet.orbit.apoapsis)
             plpe.label = Printf.@sprintf("%.3f", planet.orbit.periapsis)
             plper.label = Printf.@sprintf("%.3f", planet.orbit.period)
         end
 
         signal_connect(compute, starui.sb, "value-changed")
-        signal_connect(compute, sb_mass, "value-changed")
-        signal_connect(compute, sb_radius, "value-changed")
-        signal_connect(compute, sb_axialtilt, "value-changed")
-        signal_connect(compute, sb_rotationperiod, "value-changed")
-        signal_connect(compute, sb_albedo, "value-changed")
+        signal_connect(compute, physicalcharacteristicsui.sb_mass, "value-changed")
+        signal_connect(compute, physicalcharacteristicsui.sb_radius, "value-changed")
+        signal_connect(compute, physicalcharacteristicsui.sb_axialtilt, "value-changed")
+        signal_connect(compute, physicalcharacteristicsui.sb_rotationperiod, "value-changed")
+        signal_connect(compute, physicalcharacteristicsui.sb_albedo, "value-changed")
         signal_connect(compute, sb_semi, "value-changed")
         signal_connect(compute, sb_ecc, "value-changed")
         signal_connect(compute, sb_inc, "value-changed")
